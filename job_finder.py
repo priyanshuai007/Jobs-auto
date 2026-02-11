@@ -151,9 +151,9 @@ New jobs today: {len(new_jobs)}
 
     msg.attach(MIMEText(body, "plain"))
 
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
+    server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
     server.login(EMAIL, EMAIL_PASSWORD)
+
     server.send_message(msg)
     server.quit()
 
