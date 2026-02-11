@@ -28,9 +28,11 @@ HISTORY_FILE = "jobs_history.json"
 
 PREFERRED_REGIONS = ["India", "Dubai", "UAE", "Qatar", "Singapore"]
 
+
 def load_keywords():
     with open(KEYWORDS_FILE, "r", encoding="utf-8") as f:
         return [k.strip() for k in f.readlines() if k.strip()]
+
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -38,12 +40,15 @@ def load_history():
             return set(json.load(f))
     return set()
 
+
 def save_history(history):
     with open(HISTORY_FILE, "w") as f:
         json.dump(list(history), f)
 
+
 def hash_job(title, company, url):
     return hashlib.md5(f"{title}{company}{url}".encode()).hexdigest()
+
 
 def google_search(query):
     url = "https://www.googleapis.com/customsearch/v1"
@@ -53,22 +58,32 @@ def google_search(query):
         "q": query,
         "num": 10
     }
+
     r = requests.get(url, params=params)
-    data = r.json()
+
+    try:
+        data = r.json()
+    except Exception:
+        return []
+
     results = []
+
     for item in data.get("items", []):
         results.append({
-            "title": item["title"],
+            "title": item.get("title", ""),
             "company": item.get("displayLink", ""),
             "location": "",
             "type": "",
-            "url": item["link"],
+            "url": item.get("link", ""),
             "source": "Google Hidden Jobs"
         })
+
     return results
+
 
 def adzuna_search(keyword, country):
     url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"
+
     params = {
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
@@ -107,41 +122,54 @@ def adzuna_search(keyword, country):
         print(f"Adzuna request failed for {country}: {e}")
         return []
 
+
 def remotive_search(keyword):
     url = "https://remotive.com/api/remote-jobs"
-    r = requests.get(url)
-    data = r.json()
+
+    try:
+        r = requests.get(url, timeout=20)
+        data = r.json()
+    except Exception:
+        return []
+
     results = []
+
     for j in data.get("jobs", []):
-        if keyword.lower() in j["title"].lower():
+        if keyword.lower() in j.get("title", "").lower():
             results.append({
-                "title": j["title"],
-                "company": j["company_name"],
-                "location": j["candidate_required_location"],
-                "type": j["job_type"],
-                "url": j["url"],
+                "title": j.get("title", ""),
+                "company": j.get("company_name", ""),
+                "location": j.get("candidate_required_location", ""),
+                "type": j.get("job_type", ""),
+                "url": j.get("url", ""),
                 "source": "Remotive"
             })
+
     return results
+
 
 def detect_region(location):
     if not location:
         return "Unknown"
+
     for r in PREFERRED_REGIONS:
         if r.lower() in location.lower():
             return r
+
     if "europe" in location.lower():
         return "Europe"
+
     return "Other"
 
+
 def send_email(new_jobs, total_jobs):
+
     msg = MIMEMultipart()
     msg["From"] = EMAIL
     msg["To"] = EMAIL
     msg["Subject"] = f"Daily Job Digest – {datetime.utcnow().strftime('%Y-%m-%d')}"
 
-    body = f"""
-Total jobs found: {total_jobs}
+    body = f"""Total jobs found: {total_jobs}
 New jobs today: {len(new_jobs)}
 
 """
@@ -151,33 +179,40 @@ New jobs today: {len(new_jobs)}
 
     msg.attach(MIMEText(body, "plain"))
 
-    server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-    server.login(EMAIL, EMAIL_PASSWORD)
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(EMAIL, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        print("Email sent successfully")
+    except Exception as e:
+        print("Email sending failed:", e)
 
-    server.send_message(msg)
-    server.quit()
 
 def main():
+
     keywords = load_keywords()
     history = load_history()
+
     all_jobs = []
     new_jobs = []
 
     adzuna_countries = ["in", "sg", "ae", "qa", "gb", "fr", "de", "nl"]
 
     for kw in keywords:
+
         all_jobs.extend(remotive_search(kw))
 
         for c in adzuna_countries:
             all_jobs.extend(adzuna_search(kw, c))
 
         hidden_queries = [
-            f'{kw} job',
-            f'{kw} careers',
-            f'{kw} site:careers',
-            f'{kw} site:jobs',
-            f'{kw} recruiter',
-            f'{kw} consulting'
+            f"{kw} job",
+            f"{kw} careers",
+            f"{kw} site:careers",
+            f"{kw} site:jobs",
+            f"{kw} recruiter",
+            f"{kw} consulting"
         ]
 
         for q in hidden_queries:
@@ -187,9 +222,12 @@ def main():
     final_jobs = []
 
     for j in all_jobs:
+
         h = hash_job(j["title"], j["company"], j["url"])
+
         if h in seen:
             continue
+
         seen.add(h)
 
         j["region_group"] = detect_region(j["location"])
@@ -202,8 +240,10 @@ def main():
         final_jobs.append(j)
 
     with open(TODAY_FILE, "w", newline="", encoding="utf-8") as f:
+
         writer = csv.writer(f)
-        writer.writerow(["New","Title","Company","Location","RegionGroup","Type","Source","URL"])
+        writer.writerow(["New", "Title", "Company", "Location", "RegionGroup", "Type", "Source", "URL"])
+
         for j in final_jobs:
             writer.writerow([
                 j["new"],
@@ -221,17 +261,8 @@ def main():
 
     save_history(history)
 
- def send_email(new_jobs, total):
-    # ... your message building code above stays same ...
+    send_email(new_jobs, len(final_jobs))
 
-    try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        server.login(EMAIL, EMAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        print("Email sent successfully")
-    except Exception as e:
-        print("Email sending failed:", e)
 
 if __name__ == "__main__":
     main()
