@@ -221,7 +221,17 @@ def main():
 
     save_history(history)
 
-    send_email(new_jobs, len(final_jobs))
+ def send_email(new_jobs, total):
+    # ... your message building code above stays same ...
+
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(EMAIL, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        print("Email sent successfully")
+    except Exception as e:
+        print("Email sending failed:", e)
 
 if __name__ == "__main__":
     main()
