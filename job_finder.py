@@ -16,6 +16,9 @@ ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY")
 EMAIL = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
+if not EMAIL or not EMAIL_PASSWORD:
+    raise Exception("EMAIL_ADDRESS or EMAIL_PASSWORD secret is missing.")
+
 KEYWORDS_FILE = "keywords.txt"
 TODAY_FILE = "jobs_today.csv"
 HISTORY_FILE = "jobs_history.json"
