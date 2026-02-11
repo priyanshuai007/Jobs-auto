@@ -10,30 +10,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install dependencies
-      run: |
-        pip install requests
+      - name: Install dependencies
+        run: |
+          pip install requests
 
-    - name: Run job finder
-  env:
-    EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
-    EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-    GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-    GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
-    ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
-    ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
-  run: |
-    python job_finder.py
+      - name: Run job finder
+        env:
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+        run: |
+          python job_finder.py
 
-    - name: Upload results
-      uses: actions/upload-artifact@v4
-      with:
-        name: jobs_today
-        path: jobs_today.csv
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: jobs_today
+          path: jobs_today.csv
