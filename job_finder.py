@@ -67,22 +67,39 @@ def adzuna_search(keyword, country):
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
         "what": keyword,
-        "results_per_page": 20,
-        "content-type": "application/json"
+        "results_per_page": 20
     }
-    r = requests.get(url, params=params)
-    data = r.json()
-    results = []
-    for j in data.get("results", []):
-        results.append({
-            "title": j.get("title", ""),
-            "company": j.get("company", {}).get("display_name", ""),
-            "location": j.get("location", {}).get("display_name", ""),
-            "type": j.get("contract_type", ""),
-            "url": j.get("redirect_url", ""),
-            "source": "Adzuna"
-        })
-    return results
+
+    try:
+        r = requests.get(url, params=params, timeout=20)
+
+        if r.status_code != 200:
+            print(f"Adzuna error for {country} ({r.status_code})")
+            return []
+
+        try:
+            data = r.json()
+        except Exception:
+            print(f"Adzuna returned non-JSON for {country}")
+            return []
+
+        results = []
+
+        for j in data.get("results", []):
+            results.append({
+                "title": j.get("title", ""),
+                "company": j.get("company", {}).get("display_name", ""),
+                "location": j.get("location", {}).get("display_name", ""),
+                "type": j.get("contract_type", ""),
+                "url": j.get("redirect_url", ""),
+                "source": "Adzuna"
+            })
+
+        return results
+
+    except Exception as e:
+        print(f"Adzuna request failed for {country}: {e}")
+        return []
 
 def remotive_search(keyword):
     url = "https://remotive.com/api/remote-jobs"
